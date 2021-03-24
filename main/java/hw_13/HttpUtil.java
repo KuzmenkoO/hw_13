@@ -20,11 +20,18 @@ import java.util.stream.Collectors;
 public class HttpUtil {
     private static final HttpClient CLIENT = HttpClient.newHttpClient();
     private static final Gson GSON = new Gson();
+    private static final String URL_MAIN = "https://jsonplaceholder.typicode.com/";
+    private static final String URL_USERS = "users";
+    private static final String URL_USERNAME = "users?username=";
+    private static final String URL_POSTS = "posts";
+    private static final String URL_COMMENTS = "/comments";
+    private static final String URL_TODOS = "/todos";
+    private static String urlUserById;
 
-    public static User createNewObject(String url, User user) throws IOException, InterruptedException {
+    public static User createNewObject(User user) throws IOException, InterruptedException {
         String requestBody = new Gson().toJson(user);
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
+                .uri(URI.create(String.format("%s%s", URL_MAIN, URL_USERS)))
                 .POST(HttpRequest.BodyPublishers.ofString(requestBody))
                 .header("Content-type", "application/json")
                 .build();
@@ -32,9 +39,9 @@ public class HttpUtil {
         return GSON.fromJson(response.body(), User.class);
     }
 
-    public static User updateObject(String url, User userUpdate) throws IOException, InterruptedException {
+    public static User updateObject(User userUpdate) throws IOException, InterruptedException {
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
+                .uri(URI.create(urlUserById))
                 .PUT(HttpRequest.BodyPublishers.ofString(GSON.toJson(userUpdate)))
                 .header("Content-type", "application/json")
                 .build();
@@ -42,18 +49,19 @@ public class HttpUtil {
         return GSON.fromJson(response.body(), User.class);
     }
 
-    public static User getUser(String url) throws IOException, InterruptedException {
+    public static User getUserById(int idUser) throws IOException, InterruptedException {
+        urlUserById = String.format("%s%s/%d", URL_MAIN, URL_USERS, idUser);
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
+                .uri(URI.create(urlUserById))
                 .GET()
                 .build();
         HttpResponse<String> response = CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
         return GSON.fromJson(response.body(), User.class);
     }
 
-    public static int deleteUserStatus(User user, String url) throws IOException, InterruptedException {
+    public static int deleteUserStatus(User user) throws IOException, InterruptedException {
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
+                .uri(URI.create(urlUserById))
                 .header("Content-type", "application/json")
                 .method("DELETE", HttpRequest.BodyPublishers.ofString(GSON.toJson(user)))
                 .build();
@@ -61,9 +69,9 @@ public class HttpUtil {
         return response.statusCode();
     }
 
-    public static List<User> getAllUser(String url) throws IOException, InterruptedException {
+    public static List<User> getAllUser() throws IOException, InterruptedException {
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
+                .uri(URI.create(String.format("%s%s", URL_MAIN, URL_USERS)))
                 .GET()
                 .build();
         HttpResponse<String> response = CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
@@ -71,29 +79,18 @@ public class HttpUtil {
         }.getType());
     }
 
-    public static User getUserById(int id, String url) throws IOException, InterruptedException {
-        String urlWishId = String.format("%s/%d", url, id);
+    public static String getUserByUsername(String username) throws IOException, InterruptedException {
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(urlWishId))
-                .GET()
-                .build();
-        HttpResponse<String> response = CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
-        return GSON.fromJson(response.body(), User.class);
-    }
-
-    public static String getUserByUsername(String username, String url) throws IOException, InterruptedException {
-        String urlWishUsername = String.format("%s%s", url, username);
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(urlWishUsername))
+                .uri(URI.create(String.format("%s%s%s", URL_MAIN, URL_USERNAME, username)))
                 .GET()
                 .build();
         HttpResponse<String> response = CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
         return response.body();
     }
 
-    public static PostUser getLastPost(String url1, String url2, int userID) throws IOException, InterruptedException {
+    public static PostUser getLastPost(int userID) throws IOException, InterruptedException {
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(String.format("%s%d%s", url1, userID, url2)))
+                .uri(URI.create(String.format("%s%s/%d/%s", URL_MAIN, URL_USERS, userID, URL_POSTS)))
                 .GET()
                 .build();
         HttpResponse<String> response = CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
@@ -104,10 +101,10 @@ public class HttpUtil {
                 .get();
     }
 
-    public static Path userComments(String url1, String url2, PostUser post) throws IOException, InterruptedException {
+    public static Path userComments(PostUser post) throws IOException, InterruptedException {
         String fileName = "user-" + post.getUserId() + "-post-" + post.getId() + "-comments.json";
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(String.format("%s%d%s", url1, post.getId(), url2)))
+                .uri(URI.create(String.format("%s%s/%d%s", URL_MAIN, URL_POSTS, post.getId(), URL_COMMENTS)))
                 .GET()
                 .build();
         HttpResponse<Path> response = CLIENT.send(request, HttpResponse.BodyHandlers.ofFile(
@@ -115,9 +112,9 @@ public class HttpUtil {
         return response.body();
     }
 
-    public static List<TaskUser> allOpenTasksUser(String url1, String url2, int idUser) throws IOException, InterruptedException {
+    public static List<TaskUser> allOpenTasksUser(int idUser) throws IOException, InterruptedException {
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(String.format("%s%d%s", url1, idUser, url2)))
+                .uri(URI.create(String.format("%s%s/%d%s", URL_MAIN, URL_USERS, idUser, URL_TODOS)))
                 .GET()
                 .build();
         HttpResponse<String> response = CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
